@@ -18,23 +18,20 @@
     "security"
   ],
   "author": "ligen@keenvision.cn",
-  "license": "BSD",
+  "license": "BSD-2-Clause",
   "bugs": {
     "url": "https://github.com/keen/server/issues"
   },
   "homepage": "https://github.com/keen/server#readme",
   "dependencies": {
-    "bcrypt": "^0.8.7",
+    "bcrypt-nodejs": "^0.0.3",
     "body-parser": "^1.15.2",
     "express": "^4.14.0",
     "express-jwt": "^3.4.0",
     "jsonwebtoken": "^7.1.6",
     "lodash": "^4.14.0",
-    "moment": "^2.14.1",
     "mongoose": "^4.5.7",
     "rainbow": "^0.5.4"
   },
-  "devDependencies": {
-    "node-gyp": "^3.4.0"
-  }
+  "devDependencies": {}
 }

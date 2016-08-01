@@ -1,7 +1,6 @@
 'use strict'
 
 const jwt = require('jsonwebtoken');
-// const moment = require('moment');
 const {User} = require('../models');
 
 const EXPIRATION_IN_SECOND = 3
