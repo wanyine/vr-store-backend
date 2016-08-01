@@ -6,7 +6,6 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js"
-
   },
   "repository": {
     "type": "git",
@@ -35,5 +34,7 @@
     "mongoose": "^4.5.7",
     "rainbow": "^0.5.4"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "should": "^10.0.0"
+  }
 }
