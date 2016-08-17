@@ -8,7 +8,7 @@ const expressJwt= require('express-jwt');
 const app = express();
 app.use(bodyParser.json({limit:'1mb'}));
 app.use(bodyParser.urlencoded({extended:false}));
-app.use(expressJwt({secret:process.env.JWT_SECRET}).unless({path:['/token', '/users', '/videos', '/videos/1/token']}));
+app.use(expressJwt({secret:process.env.JWT_SECRET}).unless({path:['/tokens', '/users']}));
 app.use((err, req, res, next) => {
   console.log(err)
   if(err.name === 'UnauthorizedError'){
@@ -49,10 +49,10 @@ app.listen(process.env.PORT || 80);
 const jwt = require('jsonwebtoken');
 const {User} = require('./models');
 
-const EXPIRATION_IN_SECOND = 3
+const EXPIRATION_IN_SECOND = 3000
 
 // Login 
-app.post('/token', (req, res) => {
+app.post('/tokens', (req, res) => {
   User.findOne({name:req.body.name})
     .then(user => {
       console.log(user);
@@ -93,7 +93,7 @@ app.put('/users/:id', function(req, res, next){
 })
 
 const fs = require('fs')
-app.post('/videos/:id/token', (req, res) => {
+app.post('/videos/:id/tokens', (req, res) => {
   
   console.log(req.body);
   let cert = fs.readFileSync('private.key')
