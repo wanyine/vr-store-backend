@@ -1,0 +1,4 @@
+mongo:
+  image: daocloud.io/mongo
+  ports:
+    - 27017:27017

@@ -4,7 +4,8 @@
   "description": "restful service with express + rainbow",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npm run docker && mocha",
+    "docker": "docker-compose up --build -d",
     "start": "node app.js"
   },
   "repository": {
@@ -31,10 +32,14 @@
     "express-jwt": "^3.4.0",
     "jsonwebtoken": "^7.1.6",
     "lodash": "^4.14.0",
+    "log4js": "^0.6.38",
+    "moment": "^2.15.1",
     "mongoose": "^4.5.7",
     "rainbow": "^0.5.4"
   },
   "devDependencies": {
-    "should": "^10.0.0"
+    "cross-env": "^3.0.0",
+    "should": "^10.0.0",
+    "supertest": "^2.0.0"
   }
 }

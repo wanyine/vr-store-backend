@@ -1,0 +1,12 @@
+vr:
+  build: .
+  environment:
+    - MONGODB_PORT_27017_TCP_ADDR=mongo 
+  links:
+    - mongo
+  ports:
+    - 8080:80
+mongo:
+  image: daocloud.io/mongo
+  expose:
+    - 27017
