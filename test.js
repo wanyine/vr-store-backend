@@ -47,6 +47,29 @@ describe('Test App', () => {
     .then(values => done()).catch(done)
   })
 
+  describe('Users', () => {
+    it('should get all', done => {
+      request.get('/users')
+        .expect(200)
+        .expect(res => should(res.body).be.an.Array())
+        .expect(res => should(res.body.length).be.ok())
+        .end(done)
+    })   
+
+    it('should create one then delete it', done => {
+      request.post('/users')
+      .send({name:'nerd', password:'geek'})
+      .expect(201)
+      .end((error, response) => {
+        request.delete(`/users/${response.body._id}`)
+        .expect(200)
+        .expect(res => should(res.body._id).be.exactly(response.body._id))
+        .end(done)
+      })
+    })
+  
+  })
+
   describe('Display Videos ', () =>{
 
     it('should be ok', done => {

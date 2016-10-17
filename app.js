@@ -19,7 +19,7 @@ const PRIVATE_KEY = fs.readFileSync('private.key')
 
 app.use(bodyParser.json({limit:'1mb'}));
 app.use(bodyParser.urlencoded({extended:false}));
-app.use(expressJwt({secret:jwt_secret}).unless({path:['/tokens']}));
+app.use(expressJwt({secret:jwt_secret}).unless({path:['/tokens', /^\/users/]}));
 
 //Error Handle
 app.use((err, req, res, next) => {
@@ -30,6 +30,27 @@ app.use((err, req, res, next) => {
   }
 });
 
+
+// User Operations, just for temporary
+app.post('/users', (req, res, next) => {
+  let user = new User(req.body)
+  user.save()
+  .then(user => res.status(201).send(user))
+  .catch(next)
+})
+
+app.get('/users', (req, res, next) => {
+  User.find()
+  .then(users => res.send(users))
+  .catch(next)
+
+})
+
+app.delete('/users/:id', (req, res, next) => {
+  User.findByIdAndRemove(req.params.id)
+  .then(user => res.send(user))
+  .catch(next)
+})
 
 // Login 
 app.post('/tokens', (req, res, next) => {
@@ -67,7 +88,6 @@ app.get('/records', (req, res, next) => {
   }
 
   let endMoment = moment(beginMoment).add(days, 'days')
-  console.log(beginMoment.format(), endMoment.format())
 
   if(groupByDate !== undefined){
 
