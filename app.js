@@ -99,7 +99,7 @@ app.get('/records', (req, res, next) => {
 
     Record.mapReduce({
       map: function(){
-        emit(`${this.created.getFullYear()}-${this.created.getMonth() + 1}-${this.created.getDate()}`,
+        emit([this.created.getFullYear(), this.created.getMonth()+ 1, this.created.getDate()].join('-'),
           {times:1, time: this.time || 0})
       },
       reduce: function(key, values){
