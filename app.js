@@ -103,7 +103,7 @@ app.get('/records', (req, res, next) => {
           {times:1, time: this.time || 0})
       },
       reduce: function(key, values){
-        return {times:values.length, time:values.reduce((pre, cur) => pre + (cur.time || 0), 0)}
+        return {times:values.length, time:values.reduce(function(pre, cur){ return pre + (cur.time || 0)} , 0)}
       },
       query:{
         userId:req.user.iss,
