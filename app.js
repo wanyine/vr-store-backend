@@ -46,6 +46,12 @@ app.get('/users', (req, res, next) => {
 
 })
 
+app.put('/users/:id', (req, res, next) => {
+  User.findByIdAndUpdate(req.params.id, req.body, {new : true})
+  .then(user => res.send(user))
+  .catch(next)
+})
+
 app.delete('/users/:id', (req, res, next) => {
   User.findByIdAndRemove(req.params.id)
   .then(user => res.send(user))

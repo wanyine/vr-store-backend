@@ -30,14 +30,11 @@ const RecordSchema = new mongoose.Schema({
   version:{type:String},
   mac:{type:String},
   time:{type:Number}
-// }, {
-//   _id:false,
 })
 
 const UserSchema = new mongoose.Schema({
   name     : {type : String, required : true, unique : true},
   password : {type : String, required : true},
-  records:[RecordSchema],
 });
 
 

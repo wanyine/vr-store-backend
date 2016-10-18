@@ -56,18 +56,31 @@ describe('Test App', () => {
         .end(done)
     })   
 
-    it('should create one then delete it', done => {
+    it('should create one and update it and delete it', done => {
       request.post('/users')
       .send({name:'nerd', password:'geek'})
       .expect(201)
       .end((error, response) => {
-        request.delete(`/users/${response.body._id}`)
-        .expect(200)
-        .expect(res => should(res.body._id).be.exactly(response.body._id))
-        .end(done)
+        if(error){
+          done(error)
+        } else {
+          request.put(`/users/${response.body._id}`)
+          .send({password:'pass'})
+          .expect(200)
+          .expect(res => should(res.body.password).be.exactly('pass'))
+          .end((error, response) => {
+            if(error){
+              done(error)
+            } else {
+              request.delete(`/users/${response.body._id}`)
+              .expect(200)
+              .expect(res => should(res.body._id).be.exactly(response.body._id))
+              .end(done)
+            }
+          })
+        }
       })
     })
-  
   })
 
   describe('Display Videos ', () =>{
@@ -80,6 +93,7 @@ describe('Test App', () => {
           .expect(res => should(res.body).be.an.Array())
           .end(done)
       })
+      .catch(done)
     })
   
   })
@@ -95,10 +109,9 @@ describe('Test App', () => {
     })
 
     it('should success', done => {
-
       request.post('/tokens')
         .send({name:'test', password:'guess'})
-        .expect(res => res.body.token.should.be.ok())
+        .expect(res => should(res.body.token).be.ok())
         .expect(200, done)
     })
 
@@ -140,7 +153,8 @@ describe('Test App', () => {
     })
 
     it('should post one record', done => {
-      fetchToken().then(token => {
+      fetchToken()
+      .then(token => {
         request.post('/records')
           .use(auth(token))
           .send({mac:'a1b2', videoName:'eclipse'})
@@ -148,6 +162,7 @@ describe('Test App', () => {
           .expect(res => should(res.body.id).be.ok())
           .end(done)
       })
+      .catch(done)
     })
     it('should patch time for one record', done => {
       Promise.all([
@@ -167,7 +182,8 @@ describe('Test App', () => {
 
     it('should get record groups', done => {
 
-      fetchToken().then(token => {
+      fetchToken()
+      .then(token => {
         request.get(`/records?days=${1}&groupByDate&beginDay=${moment().format('YYYY-MM-DD')}`)
           // .query({ days:2, beginTime:moment().startOf('day').getTime(), groupByDate:1 })
           .use(auth(token))
@@ -176,6 +192,7 @@ describe('Test App', () => {
           .expect(res => should(res.body.length).be.exactly(1))
           .end(done)
       })
+      .catch(done)
     
     })
 
@@ -190,6 +207,7 @@ describe('Test App', () => {
           .expect(res => should(res.body.length).be.ok())
           .end(done)
       })
+      .catch(done)
     
     })
   })
