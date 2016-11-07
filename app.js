@@ -87,7 +87,7 @@ app.get('/records', (req, res, next) => {
 
   let {beginDay, days=1, groupByDate} = req.query
 
-  let beginMoment = moment(beginDay)
+  let beginMoment = moment(new Date(beginDay))
   if( !beginMoment.isValid() ) {
     next(new Error(`${beginDay} is invalid, date format should be like 2016-3-1`))
     return
@@ -95,11 +95,13 @@ app.get('/records', (req, res, next) => {
 
   let endMoment = moment(beginMoment).add(days, 'days')
 
+  console.log(beginMoment.toDate(), endMoment.toDate())
+
   if(groupByDate !== undefined){
 
     Record.mapReduce({
       map: function(){
-        emit([this.created.getFullYear(), this.created.getMonth()+ 1, this.created.getDate()].join('-'),
+        emit(this.created.toLocaleDateString(),
           {times:1, time: this.time || 0})
       },
       reduce: function(key, values){
