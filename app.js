@@ -87,7 +87,7 @@ app.get('/records', (req, res, next) => {
 
   let {beginDay, days=1, groupByDate} = req.query
 
-  let beginMoment = moment(new Date(beginDay))
+  let beginMoment = moment(beginDay)
   if( !beginMoment.isValid() ) {
     next(new Error(`${beginDay} is invalid, date format should be like 2016-3-1`))
     return
@@ -101,7 +101,7 @@ app.get('/records', (req, res, next) => {
 
     Record.mapReduce({
       map: function(){
-        emit(this.created.toLocaleDateString(),
+        emit(this.created.toISOString().slice(0,10),
           {times:1, time: this.time || 0})
       },
       reduce: function(key, values){
@@ -117,7 +117,7 @@ app.get('/records', (req, res, next) => {
     })
       .then(groups => 
         res.send( groups.map(({_id, value}) =>
-          Object.assign({date:_id}, value) )
+          Object.assign({date:moment(_id)}, value) )
         ) 
       )
     .catch(next)
