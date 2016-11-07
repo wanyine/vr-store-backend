@@ -5,9 +5,19 @@ const bodyParser = require('body-parser');
 // const rainbow    = require('rainbow');
 const jwt = require('jsonwebtoken');
 const expressJwt= require('express-jwt');
-const {User, Record, Video} = require('./models');
 const fs = require('fs')
 const moment = require('moment')
+
+const axios = require('axios')
+
+const client = axios.create({
+  baseURL:"https://keen-test.wilddogio.com",
+  timeout:5000
+})
+
+client.interceptors.request.use(config =>
+  Object.assign(config, {url:`${config.url}.json`})
+)
 
 const app = express();
 
@@ -30,40 +40,12 @@ app.use((err, req, res, next) => {
   }
 });
 
-
-// User Operations, just for temporary
-app.post('/users', (req, res, next) => {
-  let user = new User(req.body)
-  user.save()
-  .then(user => res.status(201).send(user))
-  .catch(next)
-})
-
-app.get('/users', (req, res, next) => {
-  User.find()
-  .then(users => res.send(users))
-  .catch(next)
-
-})
-
-app.put('/users/:id', (req, res, next) => {
-  User.findByIdAndUpdate(req.params.id, req.body, {new : true})
-  .then(user => res.send(user))
-  .catch(next)
-})
-
-app.delete('/users/:id', (req, res, next) => {
-  User.findByIdAndRemove(req.params.id)
-  .then(user => res.send(user))
-  .catch(next)
-})
-
 // Login 
 app.post('/tokens', (req, res, next) => {
-  User.findOne({name:req.body.name, password:req.body.password}).select('')
-    .then(user => {
-      if(user){
-        let token = jwt.sign({iss:user.id}, jwt_secret, {expiresIn:EXPIRATION_IN_SECOND});
+  client.get(`/users/${req.body.name}`)
+  .then(reply => {
+      if(reply.data && reply.data.password == req.body.password){
+        let token = jwt.sign({iss:req.body.name}, jwt_secret, {expiresIn:EXPIRATION_IN_SECOND});
         res.send({
           expiresAt : jwt.decode(token).exp,
           token     : token
@@ -76,86 +58,43 @@ app.post('/tokens', (req, res, next) => {
     .catch(next)
 })
 
-
-app.get('/videos', (req, res, next) => {
-  Video.find().select('name latest description cover')
-    .then(vs => res.send(vs))
-    .catch(next)
-})
-
 app.get('/records', (req, res, next) => {
 
-  let {beginDay, days=1, groupByDate} = req.query
+  const {start=moment().startOf('day').toDate().getTime(), end=moment.now()} = req.query
 
-  let beginMoment = moment(beginDay)
-  if( !beginMoment.isValid() ) {
-    next(new Error(`${beginDay} is invalid, date format should be like 2016-3-1`))
-    return
-  }
+  console.log(start, end)
 
-  let endMoment = moment(beginMoment).add(days, 'days')
-
-  if(groupByDate !== undefined){
-
-    Record.mapReduce({
-      map: function(){
-        emit([this.created.getFullYear(), this.created.getMonth()+ 1, this.created.getDate()].join('-'),
-          {times:1, time: this.time || 0})
-      },
-      reduce: function(key, values){
-        return {times:values.length, time:values.reduce(function(pre, cur){ return pre + (cur.time || 0)} , 0)}
-      },
-      query:{
-        userId:req.user.iss,
-        created:{
-          '$gt':beginMoment,
-          '$lt':endMoment
-        }
-      }
-    })
-      .then(groups => 
-        res.send( groups.map(({_id, value}) =>
-          Object.assign({date:_id}, value) )
-        ) 
-      )
-    .catch(next)
-
-  } else {
-    Record.find()
-      .where('userId').equals(req.user.iss)
-      .where('created').gt(beginMoment).lt(endMoment)
-      .then(records => res.send(records))
-      .catch(next)
-  }
+  client.get(`/records/${req.user.iss}`, {params:{
+    orderBy:'"$key"',
+    startAt:`"${start}"`,
+    endAt:`"${end}"`
+  }})
+  .then(reply => res.send(reply.data))
+  .catch(next)
 })
 
 app.patch('/records/:id', (req, res, next) => {
 
-  Record.findByIdAndUpdate(req.params.id, req.body, {new:true})
-  .then(reply => res.status(201).send(reply))
+  client.patch(`/records/${req.user.iss}/${req.params.id}`, req.body)
+  .then(reply => res.send(reply.data))
   .catch(next)
 
 })
 
 app.post('/records', (req, res, next) => {
 
-  new Record(Object.assign(req.body, {userId:req.user.iss}))
-    .save()
-    .then(record => new Promise((resolve, reject) => {
-    
-      jwt.sign(req.body, PRIVATE_KEY, {algorithm:'RS256'}, (err, token) => {
-        if(err){
-          reject(err)
-        } else {
-          resolve({token, id:record.id})
-        }
-      })
-    }))
-    .then(response => res.status(201).send(response))
-    .catch(next)
-
+  const recordKey = Date.now()
+  client.put(`/records/${req.user.iss}/${recordKey}`, req.body)
+  .then(reply => {
+    res.send({
+      token:jwt.sign(req.body, PRIVATE_KEY, {algorithm:'RS256'}),
+      id : recordKey
+    })
+  })
+  .catch(next)
 })
 
 // rainbow.route(app);
-app.listen(process.env.PORT || 80);
+const PORT = process.env.PORT || 80
+app.listen(PORT, err => console.log(`listen on ${PORT}`));
 module.exports = app;
