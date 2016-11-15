@@ -14,8 +14,8 @@ function basicAuth(req, res, next){
 basicAuth.unless = unless
 
 function allowCors(req, res, next){
-  res.header("Access-Control-Allow-Origin", process.env.ORIGIN || "http://ligen-vr-store.daoapp.io")
-  res.header("Access-Control-Allow-Headers", "X-Requested-With");
+  res.header("Access-Control-Allow-Origin", process.env.ORIGIN || "http://crm.keenvision.cn")
+  res.header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, X-Requested-With");
   res.header("Access-Control-Allow-Credentials", true);
   res.header("Access-Control-Allow-Methods","PUT,POST,GET,DELETE,OPTIONS")
   next()

@@ -26,7 +26,8 @@ app.use(expressJwt({secret:jwt_secret}).unless({path:['/tokens', /^\/admin/]}));
 //Allow Cros
 app.use(allowCors)
 //Basic Auth
-app.use(basicAuth.unless({path:['/tokens', /^\/videos/, /^\/records/]}));
+app.use(basicAuth.unless({method:'OPTIONS', path:['/tokens', /^\/videos/, /^\/records/]}));
+app.options(/\/admin\/*/, (req, res) => res.send())
 //Error Handle
 app.use((err, req, res, next) => {
   if(err.name === 'UnauthorizedError'){
