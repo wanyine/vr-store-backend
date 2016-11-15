@@ -27,6 +27,7 @@ const RecordSchema = new mongoose.Schema({
   created:{type:Date, default:Date.now},
   videoName:{type:String, required:true},
   userId:{type:mongoose.Schema.Types.ObjectId, required:true},
+  userName:{type:String},
   version:{type:String},
   mac:{type:String},
   time:{type:Number}

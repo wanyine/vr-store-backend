@@ -6,6 +6,7 @@
   "scripts": {
     "test": "npm run docker && mocha",
     "docker": "docker-compose up --build -d",
+    "dev":"PORT=8000 ADMIN_NAME=ligen ADMIN_PASS=pass ORIGIN='http://localhost:3000' node app.js",
     "start": "node app.js"
   },
   "repository": {
@@ -26,10 +27,12 @@
   },
   "homepage": "https://github.com/keen/server#readme",
   "dependencies": {
+    "basic-auth": "^1.0.4",
     "bcrypt-nodejs": "^0.0.3",
     "body-parser": "^1.15.2",
     "express": "^4.14.0",
     "express-jwt": "^3.4.0",
+    "express-unless": "^0.3.0",
     "jsonwebtoken": "^7.1.6",
     "lodash": "^4.14.0",
     "log4js": "^0.6.38",

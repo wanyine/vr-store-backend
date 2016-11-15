@@ -7,7 +7,10 @@ const jwt = require('jsonwebtoken');
 const expressJwt= require('express-jwt');
 const {User, Record, Video} = require('./models');
 const fs = require('fs')
+const path = require('path')
 const moment = require('moment')
+
+const {basicAuth, allowCors} = require('./middlewares')
 
 const app = express();
 
@@ -19,8 +22,11 @@ const PRIVATE_KEY = fs.readFileSync('private.key')
 
 app.use(bodyParser.json({limit:'1mb'}));
 app.use(bodyParser.urlencoded({extended:false}));
-app.use(expressJwt({secret:jwt_secret}).unless({path:['/tokens', /^\/users/]}));
-
+app.use(expressJwt({secret:jwt_secret}).unless({path:['/tokens', /^\/admin/]}));
+//Allow Cros
+app.use(allowCors)
+//Basic Auth
+app.use(basicAuth.unless({path:['/tokens', /^\/videos/, /^\/records/]}));
 //Error Handle
 app.use((err, req, res, next) => {
   if(err.name === 'UnauthorizedError'){
@@ -31,28 +37,86 @@ app.use((err, req, res, next) => {
 });
 
 
+app.get('/admin/records', (req, res, next) => {
+
+  let {beginDay, days=1, userId} = req.query
+
+  let beginMoment = moment(beginDay)
+  if( !beginMoment.isValid() ) {
+    next(new Error(`${beginDay} is invalid, date format should be like 2016-3-1`))
+    return
+  }
+
+  let endMoment = moment(beginMoment).add(days, 'days')
+
+  if(userId == undefined){
+    Record.mapReduce({
+      map: function(){
+        emit(this.userId, {name:this.userName, times:1, time: this.time || 0, success: this.time ? 1 : 0 })
+      },
+      reduce: function(key, values){
+        return {
+          name:values.reduce(
+            function(pre, cur){
+              if(!~(pre.indexOf(cur.name))){
+                return pre.concat(cur.name)
+              } else {
+                return pre
+              }
+            }, 
+            []
+          ).join(','),
+          times:values.length,
+          time:values.reduce(function(pre, cur){ return pre + cur.time}, 0),
+          success:values.reduce(function(pre, cur){ return pre + cur.success}, 0)
+        }
+      },
+      query:{
+        created:{
+          '$gt':beginMoment,
+          '$lt':endMoment
+        }
+      }
+    })
+    .then(groups => 
+      res.send( groups.map(({_id, value}) =>
+        Object.assign( {userId : _id}, value) )
+      ) 
+    )
+    .catch(next)
+  } else {
+    Record.find()
+      .where('userId').equals(userId)
+      .where('created').gt(beginMoment).lt(endMoment)
+      .then(records => res.send(records))
+      .catch(next)
+  }
+
+})
+
 // User Operations, just for temporary
-app.post('/users', (req, res, next) => {
+app.post('/admin/users', (req, res, next) => {
   let user = new User(req.body)
   user.save()
   .then(user => res.status(201).send(user))
   .catch(next)
 })
 
-app.get('/users', (req, res, next) => {
+app.get('/admin/users', (req, res, next) => {
   User.find()
   .then(users => res.send(users))
   .catch(next)
 
 })
 
-app.put('/users/:id', (req, res, next) => {
-  User.findByIdAndUpdate(req.params.id, req.body, {new : true})
+app.put('/admin/users', (req, res, next) => {
+  let obj = req.body
+  User.findByIdAndUpdate(obj['_id'], obj, {new : true})
   .then(user => res.send(user))
   .catch(next)
 })
 
-app.delete('/users/:id', (req, res, next) => {
+app.delete('/admin/users/:id', (req, res, next) => {
   User.findByIdAndRemove(req.params.id)
   .then(user => res.send(user))
   .catch(next)
@@ -60,10 +124,10 @@ app.delete('/users/:id', (req, res, next) => {
 
 // Login 
 app.post('/tokens', (req, res, next) => {
-  User.findOne({name:req.body.name, password:req.body.password}).select('')
+  User.findOne({name:req.body.name, password:req.body.password}).select('name')
     .then(user => {
       if(user){
-        let token = jwt.sign({iss:user.id}, jwt_secret, {expiresIn:EXPIRATION_IN_SECOND});
+        let token = jwt.sign({id:user.id, name:user.name}, jwt_secret, {expiresIn:EXPIRATION_IN_SECOND});
         res.send({
           expiresAt : jwt.decode(token).exp,
           token     : token
@@ -95,8 +159,6 @@ app.get('/records', (req, res, next) => {
 
   let endMoment = moment(beginMoment).add(days, 'days')
 
-  console.log(beginMoment.toDate(), endMoment.toDate())
-
   if(groupByDate !== undefined){
 
     Record.mapReduce({
@@ -108,7 +170,7 @@ app.get('/records', (req, res, next) => {
         return {times:values.length, time:values.reduce(function(pre, cur){ return pre + (cur.time || 0)} , 0)}
       },
       query:{
-        userId:req.user.iss,
+        userId:req.user.id,
         created:{
           '$gt':beginMoment,
           '$lt':endMoment
@@ -124,7 +186,7 @@ app.get('/records', (req, res, next) => {
 
   } else {
     Record.find()
-      .where('userId').equals(req.user.iss)
+      .where('userId').equals(req.user.id)
       .where('created').gt(beginMoment).lt(endMoment)
       .then(records => res.send(records))
       .catch(next)
@@ -141,7 +203,7 @@ app.patch('/records/:id', (req, res, next) => {
 
 app.post('/records', (req, res, next) => {
 
-  new Record(Object.assign(req.body, {userId:req.user.iss}))
+  new Record(Object.assign(req.body, {userId:req.user.id, userName:req.user.name}))
     .save()
     .then(record => new Promise((resolve, reject) => {
     

@@ -5,6 +5,10 @@ process.env.PORT=8888
 const should = require('should');
 const supertest = require('supertest');
 const moment = require('moment');
+
+process.env.ADMIN_NAME='test'
+process.env.ADMIN_PASS='guess'
+
 const app = require('./app');
 const request = supertest(app)
 const {User, Record, Video} = require('./models')
@@ -25,9 +29,11 @@ describe('Test App', () => {
         })
   })
 
-  const auth = token => req => {
+  const jwtAuth = token => req => {
     req.set('Authorization',`Bearer ${token}`)
   }
+
+  const basicAuth = req => req.auth('test', 'guess')
 
   before( done =>{
     let user = new User({name:'test', password:'guess'})
@@ -47,9 +53,22 @@ describe('Test App', () => {
     .then(values => done()).catch(done)
   })
 
-  describe('Users', () => {
+  describe('Records Query', () => {
+    it('should group by users', done => {
+      request.get(`/admin/records?beginDay=${moment().format('YYYY-MM-DD')}`)
+        .use(basicAuth)
+        .expect(200)
+        .expect(res => should(res.body).be.an.Array())
+        .expect(res => should(res.body.length).be.ok())
+        .end(done)
+    })   
+  
+  })
+
+  describe('Users Management', () => {
     it('should get all', done => {
-      request.get('/users')
+      request.get('/admin/users')
+        .use(basicAuth)
         .expect(200)
         .expect(res => should(res.body).be.an.Array())
         .expect(res => should(res.body.length).be.ok())
@@ -57,14 +76,16 @@ describe('Test App', () => {
     })   
 
     it('should create one and update it and delete it', done => {
-      request.post('/users')
+      request.post('/admin/users')
+      .use(basicAuth)
       .send({name:'nerd', password:'geek'})
       .expect(201)
       .end((error, response) => {
         if(error){
           done(error)
         } else {
-          request.put(`/users/${response.body._id}`)
+          request.put(`/admin/users/${response.body._id}`)
+          .use(basicAuth)
           .send({password:'pass'})
           .expect(200)
           .expect(res => should(res.body.password).be.exactly('pass'))
@@ -72,7 +93,8 @@ describe('Test App', () => {
             if(error){
               done(error)
             } else {
-              request.delete(`/users/${response.body._id}`)
+              request.delete(`/admin/users/${response.body._id}`)
+              .use(basicAuth)
               .expect(200)
               .expect(res => should(res.body._id).be.exactly(response.body._id))
               .end(done)
@@ -88,7 +110,7 @@ describe('Test App', () => {
     it('should be ok', done => {
       fetchToken().then(token => {
         request.get('/videos')
-          .use(auth(token))
+          .use(jwtAuth(token))
           .expect(200)
           .expect(res => should(res.body).be.an.Array())
           .end(done)
@@ -126,7 +148,7 @@ describe('Test App', () => {
 
     it('should fail if token is invalid', done => {
       request.post('/records')
-        .use(auth('invalid-token'))
+        .use(jwtAuth('invalid-token'))
         .send({mac:'abcd-1234'})
         .expect(401, done)
     })
@@ -156,7 +178,7 @@ describe('Test App', () => {
       fetchToken()
       .then(token => {
         request.post('/records')
-          .use(auth(token))
+          .use(jwtAuth(token))
           .send({mac:'a1b2', videoName:'eclipse'})
           .expect(201)
           .expect(res => should(res.body.id).be.ok())
@@ -171,7 +193,7 @@ describe('Test App', () => {
       ])
       .then(([token, record]) => {
         request.patch(`/records/${record.id}`)
-        .use(auth(token))
+        .use(jwtAuth(token))
         .send({time:60})
         .expect(201)
         .expect(res => should(res.body.time).be.exactly(60))
@@ -186,7 +208,7 @@ describe('Test App', () => {
       .then(token => {
         request.get(`/records?days=${1}&groupByDate&beginDay=${moment().format('YYYY-MM-DD')}`)
           // .query({ days:2, beginTime:moment().startOf('day').getTime(), groupByDate:1 })
-          .use(auth(token))
+          .use(jwtAuth(token))
           .expect(200)
           .expect(res => should(res.body).be.an.Array())
           .expect(res => should(res.body.length).be.exactly(1))
@@ -201,7 +223,7 @@ describe('Test App', () => {
       fetchToken().then(token => {
         request.get(`/records?beginDay=${moment().format('YYYY-MM-DD')}`)
           // .query({ days:2, beginTime:moment().startOf('day').getTime() })
-          .use(auth(token))
+          .use(jwtAuth(token))
           .expect(200)
           .expect(res => should(res.body).be.an.Array())
           .expect(res => should(res.body.length).be.ok())
