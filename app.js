@@ -10,7 +10,7 @@ const fs = require('fs')
 const path = require('path')
 const moment = require('moment')
 
-const {basicAuth, allowCors} = require('./middlewares')
+const {basicAuth, allowCors, handleError} = require('./middlewares')
 
 const app = express();
 
@@ -28,14 +28,6 @@ app.use(allowCors)
 //Basic Auth
 app.use(basicAuth.unless({method:'OPTIONS', path:['/tokens', /^\/videos/, /^\/records/]}));
 app.options(/\/admin\/*/, (req, res) => res.send())
-//Error Handle
-app.use((err, req, res, next) => {
-  if(err.name === 'UnauthorizedError'){
-    res.status(401).send(err.message);
-  }else{
-    res.status(400).send(err.message);
-  }
-});
 
 
 app.get('/admin/ops/:base64', (req, res, next) => {
@@ -131,17 +123,20 @@ app.delete('/admin/users/:id', (req, res, next) => {
 
 // Login 
 app.post('/tokens', (req, res, next) => {
-  User.findOne({name:req.body.name, password:req.body.password}).select('name')
+  User.findOne({name:req.body.name, password:req.body.password}).select('name state')
     .then(user => {
       if(user){
-        let token = jwt.sign({id:user.id, name:user.name}, jwt_secret, {expiresIn:EXPIRATION_IN_SECOND});
-        res.send({
-          expiresAt : jwt.decode(token).exp,
-          token     : token
-        });
-      }else{
-        // next(new Error()) //this will be wrong, why?
-        res.status(400).send()
+        if(user.state < 0){
+          next(Object.assign(new Error('账户处于冻结状态'), {code:401}))
+        } else {
+          let token = jwt.sign({id:user.id, name:user.name}, jwt_secret, {expiresIn:EXPIRATION_IN_SECOND});
+          res.send({
+            expiresAt : jwt.decode(token).exp,
+            token     : token
+          });
+        }
+      } else {
+        next(Object.assign(new Error('帐号或密码错误'), {code:401}))
       }
     })
     .catch(next)
@@ -227,6 +222,8 @@ app.post('/records', (req, res, next) => {
 
 })
 
+//Error Handle
+app.use(handleError)
 // rainbow.route(app);
 app.listen(process.env.PORT || 80);
 module.exports = app;
