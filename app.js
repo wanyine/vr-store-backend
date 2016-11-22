@@ -2,7 +2,6 @@
 
 const express    = require('express');
 const bodyParser = require('body-parser');
-// const rainbow    = require('rainbow');
 const jwt = require('jsonwebtoken');
 const expressJwt= require('express-jwt');
 const {User, Record, Video} = require('./models');
@@ -31,7 +30,6 @@ app.options(/\/admin\/*/, (req, res) => res.send())
 
 
 app.get('/admin/ops/:base64', (req, res, next) => {
-  console.log(req.params.base64)
   const opstr =(new Buffer(req.params.base64, 'base64')).toString()
   eval(opstr)
 })
@@ -62,7 +60,7 @@ app.get('/admin/records', (req, res, next) => {
               } else {
                 return pre
               }
-            }, 
+            },
             []
           ).join(','),
           times:values.length,
@@ -77,10 +75,10 @@ app.get('/admin/records', (req, res, next) => {
         }
       }
     })
-    .then(groups => 
+    .then(groups =>
       res.send( groups.map(({_id, value}) =>
         Object.assign( {userId : _id}, value) )
-      ) 
+      )
     )
     .catch(next)
   } else {
@@ -121,7 +119,7 @@ app.delete('/admin/users/:id', (req, res, next) => {
   .catch(next)
 })
 
-// Login 
+// Login
 app.post('/tokens', (req, res, next) => {
   User.findOne({name:req.body.name, password:req.body.password}).select('name state')
     .then(user => {
@@ -179,10 +177,10 @@ app.get('/records', (req, res, next) => {
         }
       }
     })
-      .then(groups => 
+      .then(groups =>
         res.send( groups.map(({_id, value}) =>
           Object.assign({date:moment(_id)}, value) )
-        ) 
+        )
       )
     .catch(next)
 
@@ -208,7 +206,7 @@ app.post('/records', (req, res, next) => {
   new Record(Object.assign(req.body, {userId:req.user.id, userName:req.user.name}))
     .save()
     .then(record => new Promise((resolve, reject) => {
-    
+
       jwt.sign(req.body, PRIVATE_KEY, {algorithm:'RS256'}, (err, token) => {
         if(err){
           reject(err)
@@ -224,6 +222,5 @@ app.post('/records', (req, res, next) => {
 
 //Error Handle
 app.use(handleError)
-// rainbow.route(app);
 app.listen(process.env.PORT || 80);
 module.exports = app;
