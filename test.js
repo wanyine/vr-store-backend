@@ -78,15 +78,15 @@ describe('Test App', () => {
     it('should create one and update it and delete it', done => {
       request.post('/admin/users')
       .use(basicAuth)
-      .send({name:'nerd', password:'geek'})
+      .send({name:'superman', password:'guessit'})
       .expect(201)
       .end((error, response) => {
         if(error){
           done(error)
         } else {
-          request.put(`/admin/users/${response.body._id}`)
+          request.put(`/admin/users`)
           .use(basicAuth)
-          .send({password:'pass'})
+          .send(Object.assign({}, response.body, {password:'pass'}))
           .expect(200)
           .expect(res => should(res.body.password).be.exactly('pass'))
           .end((error, response) => {
@@ -127,7 +127,7 @@ describe('Test App', () => {
     it('should failed if username or password is wrong', done => {
       request.post('/tokens')
         .send({})
-        .expect(400, done)
+        .expect(401, done)
     })
 
     it('should success', done => {

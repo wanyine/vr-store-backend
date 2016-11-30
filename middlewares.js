@@ -26,7 +26,7 @@ exports.allowCors =  function (req, res, next){
 exports.handleError = function (err, req, res, next){
   console.error(err)
   if(err.name === 'UnauthorizedError'){
-    res.status(401).send(err.message);
+    res.status(401).send('会话已过期，请LOGOUT后重新登录');
   }else if(err.code){
     res.status(err.code).send(err.message);
   }else {
